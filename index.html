@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phaser Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <script>
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    backgroundColor: '#87CEEB',
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 600 }, // Gravity
+            debug: false
+        }
+    },
+    scene: { preload, create, update }
+};
+
+let felicie, cursors, bells, landingZone, score = 0, lives = 3, scoreText, livesText;
+
+let dangerZone;
+
+function preload() {
+    // Preload assets as usual
+    this.load.image('felicie', 'assets/Felicie.png');
+    this.load.image('bell', 'assets/Bell.png');
+    this.load.image('platform', 'https://labs.phaser.io/assets/sprites/platform.png');
+    this.load.audio('bellSound', 'assets/bell-sound.mp3'); 
+
+}
+
+function create() {
+    // 🎭 Félicie Character
+    felicie = this.physics.add.sprite(400, 500, 'felicie').setScale(0.5); // Adjust scale
+
+    felicie.setCollideWorldBounds(true);
+
+    // 🏆 Bells
+    bells = this.physics.add.staticGroup();
+  // 🏆 Bells
+  bells.create(500, 500, 'bell').setScale(0.5);
+bells.create(300, 350, 'bell').setScale(0.5);
+bells.create(500, 300, 'bell').setScale(0.5);
+bells.create(200, 250, 'bell').setScale(0.5);
+bells.create(600, 200, 'bell').setScale(0.5);
+this.bellSound = this.sound.add('bellSound');
+
+ 
+
+
+    // 🌉 Platforms to help reach bells
+    let smallPlatform1 = this.physics.add.staticSprite(150, 400, 'platform').setScale(0.5, 0.5).refreshBody();
+    let smallPlatform2 = this.physics.add.staticSprite(600, 350, 'platform').setScale(0.5, 0.5).refreshBody();
+
+    // 🏅 Landing Zone (Smaller Width)
+    landingZone = this.physics.add.staticSprite(400, 570, 'platform').setScale(0.5, 0.5).refreshBody();
+
+    // 🚨 Danger Zone (Red Zone beneath platform)
+    dangerZone = this.physics.add.staticGroup();
+    dangerZone.create(400, 600, 'platform').setScale(2, 0.5).refreshBody();
+
+    dangerZone.setDepth(1);  // Ensures the danger zone is behind the character but visible
+
+    // 🎮 Controls
+    cursors = this.input.keyboard.createCursorKeys();
+
+    // 💡 Collision Logic
+    this.physics.add.overlap(felicie, bells, ringBell, null, this);
+    this.physics.add.collider(felicie, landingZone, safeLanding, null, this);
+    this.physics.add.collider(felicie, smallPlatform1);
+    this.physics.add.collider(felicie, smallPlatform2);
+    this.physics.add.collider(felicie, dangerZone, hitDangerZone, null, this); // Detect if she hits danger zone
+
+    // 📊 Score & Lives Text
+    scoreText = this.add.text(16, 16, 'Bells: 0', { fontSize: '24px', fill: '#fff' });
+    livesText = this.add.text(16, 40, 'Lives: 3', { fontSize: '24px' });
+}
+
+// 🛠 Update Loop
+function update() {
+    // Left/Right Movement
+    if (cursors.left.isDown) {
+        felicie.setVelocityX(-200);
+    } else if (cursors.right.isDown) {
+        felicie.setVelocityX(200);
+    } else {
+        felicie.setVelocityX(0);
+    }
+
+    // Jumping Logic
+    if (cursors.up.isDown && felicie.body.touching.down) {
+        felicie.setVelocityY(-500);
+    }
+}
+
+// ❌ Trigger if Félicie enters danger zone
+function hitDangerZone(felicie, danger) {
+    loseLife(this); // Decrease life if in danger zone
+}
+
+// ❌ Lose a Life and Reset Position
+function loseLife(scene) {
+    if (lives > 0) {  
+        lives--;
+        livesText.setText('Lives: ' + lives);
+
+        if (lives <= 0) {
+            alert("😢 Game Over! Félicie couldn't complete her challenge.");
+            location.reload(); // Restart game
+        } else {
+            // Reset position & velocity
+            felicie.setPosition(400, 500);
+            felicie.setVelocity(0, 0);
+        }
+    }
+}
+
+// 🎯 Touching a Bell
+function ringBell(felicie, bell) {
+    bell.destroy(); // Remove the bell
+    this.bellSound.play(); // Play sound
+    score++;
+    scoreText.setText('Bells: ' + score);
+
+    // Win if all bells are collected
+    if (score === 5) {
+        alert("🎉 You Win! Félicie completed her challenge!");
+        location.reload(); // Restart game
+    }
+}
+
+// ✅ Safe Landing
+function safeLanding(felicie, platform) {
+    console.log("Landed safely!");
+}
+
+const game = new Phaser.Game(config);
+
+
+    </script>
+</body>
+</html>
